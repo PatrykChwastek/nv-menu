@@ -11,7 +11,7 @@ function M.new(opts)
     self.name         = opts.name or "Menu"
     self.items        = opts.items or {}
     self.item_actions = opts.item_actions or {}
-    self.config       = vim.tbl_deep_extend("force", {}, require("nv-menu").config, opts or {})
+    self.config       = vim.tbl_deep_extend("force", { auto_preview = false }, require("nv-menu").config, opts or {})
     self.index        = 1
     self.scroll       = 0
     self.history      = {}

@@ -47,13 +47,13 @@
 ---@field nav_keys string[] Keys for quick nav (auto-filled with 1-9 if empty)
 ---@field panel_width number Width of side panel buffer
 ---@field panel_wrap boolean Wrap text in the side panel (default false)
----@field auto_preview boolean Automatically open/update panel when cursor lands on a preview item
 ---@field item_actions NvMenuAction[] Menu-level actions applied to every item; item-level actions override by key
 
 ---@class NvMenuOpts : NvMenuConfig
 ---@field name? string Menu window title
 ---@field items? NvMenuItem[] Items to display
 ---@field footer? string|string[] Static footer text shown below the list
+---@field auto_preview? boolean Automatically open/update panel as cursor moves (default false)
 ---@field bufs? nil Internal — cleared before passing to show(); do not set
 
 ---@class NvMenuInstance
@@ -84,7 +84,6 @@ M.config = {
     nav_keys = {},
     panel_width = 40,
     panel_wrap = false,
-    auto_preview = false,
     item_actions = {},
 }
 
