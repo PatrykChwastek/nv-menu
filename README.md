@@ -2,7 +2,7 @@
 
 Floating popup menu for Neovim. Support submenus, side-panel previews, per-item context actions, fast navigation via keys, and more.
 
-![](https://i.imgur.com/Y5OlNpC.gif)
+[![nv-menu-demo](https://i.postimg.cc/0rRShvn6/nv-menu-demo1.gif)](https://postimg.cc/0KnrJLLx)
 
 > At first, I built this for my own simple scenarios. After a while, it grew into something bigger, 
 > so I decided to turn it into a proper plugin(I hope so). Maybe someone will find it useful.
