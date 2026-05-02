@@ -2,6 +2,15 @@
 
 Floating popup menu for Neovim. Support submenus, side-panel previews, per-item context actions, fast navigation via keys, and more.
 
+## Features
+- Floating popup menus
+- Nested and replace submenus
+- Side-panel previews (buffers)
+- Per-item context actions
+- Fast keyboard navigation (1–9 keys + custom nav keys)
+- Built-in menus (Buffers, LSP References)
+- Customizable positioning and appearance
+
 [![nv-menu-demo](https://i.postimg.cc/0rRShvn6/nv-menu-demo1.gif)](https://postimg.cc/0KnrJLLx)
 
 > At first, I built this for my own simple scenarios. After a while, it grew into something bigger, 
@@ -331,7 +340,7 @@ Actions can open a replace submenu instead of calling `fn`:
 
 ---
 
-## Losding in menus(async)
+## Loading in menus (async)
 
 Some operations — like querying LSP — take time and would freeze the UI if awaited before opening the menu. `show_loading` opens the menu immediately with a placeholder, then `update_items` swaps in the real results when they arrive. The menu is fully interactive during the wait (you can close it, scroll, etc.).
 
@@ -357,7 +366,7 @@ end)
 ---
 
 ## Built-ins
-Predifined menues
+Predefined menus
 
 ### Buffers
 Menu to navigate and manage current buffers. 
