@@ -357,10 +357,12 @@ end)
 ---
 
 ## Built-ins
+Predifined menues
 
 ### Buffers
+Menu to navigate and manage current buffers. 
 
-Predifined menues
+[![buffers-preview.png](https://i.postimg.cc/fbxfzv5p/buffers-preview.png)](https://postimg.cc/PL5wKYgQ)
 
 ```lua
 require("nv-menu").builtins.buffers()
