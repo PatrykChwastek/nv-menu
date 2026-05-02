@@ -390,6 +390,9 @@ Contains actions: `p` peek buffer in flating window,  `o` options submenu (`v` v
 Deleting a buffer with unsaved changes opens a native `vim.fn.confirm` prompt to confirm. Deleting the current buffer switches to the next available buffer (or `enew`).
 
 ### LSP References
+Show all LSP references, at text object under the cursor.
+
+[![lsp-ref-preview.png](https://i.postimg.cc/sg8GkZzs/lsp-ref-preview.png)](https://postimg.cc/QFQM5CVy)
 
 Opens immediately with a loading placeholder and queries all LSP clients asynchronously.
 
