@@ -2,7 +2,16 @@
 
 Floating popup menu for Neovim. Support submenus, side-panel previews, per-item context actions, fast navigation via keys, and more.
 
-![](https://i.imgur.com/Y5OlNpC.gif)
+## Features
+- Floating popup menus
+- Nested and replace submenus
+- Side-panel previews (buffers)
+- Per-item context actions
+- Fast keyboard navigation (1–9 keys + custom nav keys)
+- Built-in menus (Buffers, LSP References)
+- Customizable positioning and appearance
+
+[![nv-menu-demo](https://i.postimg.cc/0rRShvn6/nv-menu-demo1.gif)](https://postimg.cc/0KnrJLLx)
 
 > At first, I built this for my own simple scenarios. After a while, it grew into something bigger, 
 > so I decided to turn it into a proper plugin(I hope so). Maybe someone will find it useful.
@@ -331,7 +340,7 @@ Actions can open a replace submenu instead of calling `fn`:
 
 ---
 
-## Losding in menus(async)
+## Loading in menus (async)
 
 Some operations — like querying LSP — take time and would freeze the UI if awaited before opening the menu. `show_loading` opens the menu immediately with a placeholder, then `update_items` swaps in the real results when they arrive. The menu is fully interactive during the wait (you can close it, scroll, etc.).
 
@@ -357,10 +366,12 @@ end)
 ---
 
 ## Built-ins
+Predefined menus
 
 ### Buffers
+Menu to navigate and manage current buffers. 
 
-Predifined menues
+[![buffers-preview.png](https://i.postimg.cc/fbxfzv5p/buffers-preview.png)](https://postimg.cc/PL5wKYgQ)
 
 ```lua
 require("nv-menu").builtins.buffers()
@@ -388,6 +399,9 @@ Contains actions: `p` peek buffer in flating window,  `o` options submenu (`v` v
 Deleting a buffer with unsaved changes opens a native `vim.fn.confirm` prompt to confirm. Deleting the current buffer switches to the next available buffer (or `enew`).
 
 ### LSP References
+Show all LSP references, at text object under the cursor.
+
+[![lsp-ref-preview.png](https://i.postimg.cc/sg8GkZzs/lsp-ref-preview.png)](https://postimg.cc/QFQM5CVy)
 
 Opens immediately with a loading placeholder and queries all LSP clients asynchronously.
 
