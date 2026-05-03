@@ -1,0 +1,537 @@
+*nv-menu.txt*  Floating popup menu for Neovim
+
+================================================================================
+CONTENTS                                                      *nv-menu-contents*
+
+  1. Introduction .............. |nv-menu|
+  2. Installation .............. |nv-menu-installation|
+  3. Setup ..................... |nv-menu-setup|
+  4. Positions ................. |nv-menu-positions|
+  5. API ....................... |nv-menu-api|
+  6. Menu options .............. |nv-menu-opts|
+  7. Items ..................... |nv-menu-items|
+  8. Nav keys .................. |nv-menu-nav-keys|
+  9. keep_open and ctrl ........ |nv-menu-ctrl|
+ 10. Submenus .................. |nv-menu-submenus|
+ 11. Side panel ................ |nv-menu-panel|
+ 12. Actions ................... |nv-menu-actions|
+ 13. Async menus ............... |nv-menu-async|
+ 14. Built-ins ................. |nv-menu-builtins|
+ 15. Keyboard reference ........ |nv-menu-keys|
+
+================================================================================
+INTRODUCTION                                                          *nv-menu*
+
+nv-menu is a floating popup menu for Neovim. Features:
+
+  • Submenus — nested (side-by-side) or replace (in-place with history)
+  • Side panel — lazy file/content previews beside the list
+  • Per-item actions — context keys shown as footer hints
+  • Nav keys — single-key jump + activate for any item
+  • Async support — open immediately with a placeholder, swap items later
+  • Built-ins — buffer switcher and LSP references
+
+================================================================================
+INSTALLATION                                               *nv-menu-installation*
+
+lazy.nvim ~
+>lua
+    {
+        "your-username/nv-menu",
+        config = function()
+            require("nv-menu").setup({
+                position   = "cursor",
+                max_height = 10,
+            })
+        end,
+    }
+<
+
+packer.nvim ~
+>lua
+    use {
+        "your-username/nv-menu",
+        config = function()
+            require("nv-menu").setup({})
+        end,
+    }
+<
+
+================================================================================
+SETUP                                                            *nv-menu-setup*
+
+>lua
+    require("nv-menu").setup(opts)
+<
+
+All fields are optional — defaults are shown below.
+
+>lua
+    require("nv-menu").setup({
+        position     = "cursor",    -- see |nv-menu-positions|
+        max_height   = 10,          -- max visible items; list scrolls past this
+        max_width    = 40,          -- labels longer than this are truncated
+        border       = "single",    -- "single"|"double"|"rounded"|"none"
+        panel_width  = 40,          -- width of the side preview panel
+        panel_wrap   = false,       -- wrap text in the panel
+        close_keys   = { "<Esc>", "q" },
+        nav_keys     = {},          -- see |nv-menu-nav-keys|
+
+        -- selected item highlight
+        highlight    = "NvMenuCursor",
+        highlight_bg = "#3a3a4a",
+        highlight_fg = "#ffffff",
+
+        -- point at any existing highlight group; nil = colorscheme default
+        border_hl    = nil,
+        title_hl     = nil,
+    })
+<
+
+Custom border/title colors: ~
+>lua
+    vim.api.nvim_set_hl(0, "MyBorder", { fg = "#7aa2f7" })
+    vim.api.nvim_set_hl(0, "MyTitle",  { fg = "#bb9af7", bold = true })
+    require("nv-menu").setup({ border_hl = "MyBorder", title_hl = "MyTitle" })
+<
+
+================================================================================
+POSITIONS                                                     *nv-menu-positions*
+
+The `position` field controls where the menu window is anchored.
+
+  "cursor"                    Below the cursor (default)
+  "center"                    Center of the screen
+  "centerleft"  "centerright" Vertically centered, pinned to left/right edge
+  "topleft"     "topright"    Screen corners (top)
+  "bottomleft"  "bottomright" Screen corners (bottom)
+
+================================================================================
+API                                                                *nv-menu-api*
+
+                                                             *nv-menu.setup()*
+setup({opts})
+    Merge {opts} into the global config. Call once during plugin init.
+
+    Parameters: ~
+      • {opts}  (NvMenuConfig|nil)  Config fields to override; see |nv-menu-setup|
+
+                                                              *nv-menu.show()*
+show({opts})
+    Open a menu. The menu is fully interactive immediately.
+
+    Parameters: ~
+      • {opts}  (NvMenuOpts)  Menu options; see |nv-menu-opts|
+
+    Return: ~
+      (NvMenuInstance)
+
+    Example: ~
+>lua
+        require("nv-menu").show({
+            name  = "My menu",
+            items = {
+                { label = "Say hello", fn = function() print("hi") end },
+            },
+        })
+<
+
+                                                      *nv-menu.show_loading()*
+show_loading({opts})
+    Open a menu immediately with a "Loading…" placeholder item. Call
+    |nv-menu.update_items()| to replace the placeholder once data is ready.
+    See |nv-menu-async| for a full example.
+
+    Parameters: ~
+      • {opts}  (NvMenuOpts)
+
+    Return: ~
+      (NvMenuInstance)
+
+                                                      *nv-menu.update_items()*
+update_items({items})
+    Replace the item list in the currently open menu and redraw. The window
+    resizes automatically to fit the new list.
+
+    Parameters: ~
+      • {items}  (NvMenuItem[])
+
+                                                          *nv-menu.close_all()*
+close_all()
+    Close all menus, including orphaned floating windows that have
+    `vim.b[buf].nv_menu == true`.
+
+                                                             *nv-menu.close()*
+close()
+    Close the current menu.
+
+================================================================================
+MENU OPTIONS                                                      *nv-menu-opts*
+
+`show()` and `show_loading()` accept a table that merges all |nv-menu-setup|
+fields plus the following:
+
+  • {name}         (string|nil)            Window title.
+  • {items}        (NvMenuItem[])          Items to display; see |nv-menu-items|.
+  • {footer}       (string|string[]|nil)   Static lines shown below the list.
+  • {auto_preview} (boolean|nil)           Automatically open/update the side panel
+                                           as the cursor moves. Default: false.
+
+================================================================================
+ITEMS                                                            *nv-menu-items*
+
+Each entry in the `items` list is a table with these fields:
+
+  • {label}         (string)          Required. Displayed in the list.
+
+  • {fn}            (function|nil)    Called when item is activated (<Enter>).
+                                      Receives `(ctx, ctrl?)`.
+                                      `ctrl` is only passed when `keep_open=true`.
+                                      The menu closes before `fn` runs unless
+                                      `keep_open=true`.
+
+  • {keep_open}     (boolean|nil)     Keep menu open after `fn` runs.
+                                      `fn` receives a second `ctrl` argument.
+                                      See |nv-menu-ctrl|.
+
+  • {nav_key}       (string|nil)      Single character for instant jump+activate.
+                                      See |nv-menu-nav-keys|.
+
+  • {submenu}       (NvMenuSubmenu|nil)  Open a child menu.
+                                      See |nv-menu-submenus|.
+
+  • {panel_content} (string|function|nil)
+                                      Content for the side panel.
+                                      A function is called lazily on first hover
+                                      and its result is cached.
+                                      See |nv-menu-panel|.
+
+  • {panel_ft}      (string|nil)      Filetype hint for syntax highlighting.
+                                      Ignored when `panel_content` is a function
+                                      that returns the filetype itself.
+
+  • {actions}       (NvMenuAction[]|nil)
+                                      Per-item context keys shown as footer hints.
+                                      See |nv-menu-actions|.
+
+Context passed to fn (`ctx`): ~
+
+  • {bufnr}   (integer)        Source buffer number.
+  • {winnr}   (integer)        Source window handle.
+  • {cursor}  (number[])       {row 1-indexed, col 0-indexed}.
+  • {word}    (string)         Word under cursor at open time.
+  • {visual}  (string|nil)     Selected text (non-nil only in visual mode).
+  • {mode}    (string)         Vim mode at open time ("n", "v", "V", …).
+
+>lua
+    -- jump back to the source buffer and trigger LSP rename
+    fn = function(ctx)
+        vim.api.nvim_set_current_win(ctx.winnr)
+        vim.api.nvim_win_set_cursor(ctx.winnr, ctx.cursor)
+        vim.lsp.buf.rename()
+    end,
+<
+
+================================================================================
+NAV KEYS                                                       *nv-menu-nav-keys*
+
+Nav keys let you jump to an item and activate it with a single keypress.
+
+Item-level nav_key ~
+Set `nav_key` on an item to reserve that key for it. It is never overridden
+by auto-numbering.
+>lua
+    { label = "Vertical split",   nav_key = "v", fn = ... },
+    { label = "Horizontal split", nav_key = "h", fn = ... },
+    { label = "Open in tab",      nav_key = "t", fn = ... },
+<
+
+Auto-numbering ~
+Items without a `nav_key` are automatically assigned `1`–`9` in order.
+Items with an explicit `nav_key` are skipped, so numbers never conflict.
+>lua
+    items = {
+        { label = "Alpha", nav_key = "a", fn = ... },   -- key: "a"
+        { label = "Beta",  nav_key = "b", fn = ... },   -- key: "b"
+        { label = "Gamma", fn = ... },                  -- auto: "1"
+        { label = "Delta", fn = ... },                  -- auto: "2"
+    }
+<
+
+Custom key set ~
+Pass `nav_keys` in |nv-menu-setup| or per-menu to replace the default 1–9.
+>lua
+    require("nv-menu").show({
+        nav_keys = { "f", "g", "h" },
+        items = { ... },
+    })
+<
+
+================================================================================
+KEEP_OPEN AND CTRL                                                *nv-menu-ctrl*
+
+By default activating an item closes the menu before calling `fn`. Set
+`keep_open = true` to keep the menu open — useful for actions that can run
+multiple times (e.g. deleting several buffers one by one).
+
+When `keep_open = true`, `fn` receives a `ctrl` object as its second arg:
+
+  • ctrl.remove()         Remove the current item from the list and redraw.
+  • ctrl.close()          Close the menu programmatically.
+  • ctrl.redraw()         Redraw without structural changes.
+  • ctrl.peek({item?})    Open a large centered read-only preview window.
+                          Closes with `q` / <Esc>, returns focus to the menu.
+
+>lua
+    {
+        label     = "Delete item",
+        keep_open = true,
+        fn        = function(ctx, ctrl)
+            delete_something()
+            ctrl.remove()      -- removes this item and redraws
+        end,
+    }
+<
+
+Actions use the same pattern but `fn` receives `(ctx, item, ctrl)`: ~
+>lua
+    { key = "d", label = "delete", keep_open = true,
+      fn = function(ctx, item, ctrl)
+          delete_thing(item)
+          ctrl.remove()
+      end,
+    }
+<
+
+`ctrl.remove()` is replace-submenu aware: when called from inside a replace
+submenu it removes the parent item and pops back to the parent list.
+
+================================================================================
+SUBMENUS                                                       *nv-menu-submenus*
+
+>lua
+    -- nested: opens as a separate floating window beside the parent
+    -- h / ← closes the child and returns focus to the parent
+    { label = "Refactor", submenu = { type = "nested", items = {
+        { label = "Extract function", fn = ... },
+        { label = "Inline variable",  fn = ... },
+    }}}
+
+    -- replace: the current list is replaced in the same window
+    -- history is kept; h / ← navigates back to the previous list
+    -- the window resizes automatically when switching back and forth
+    { label = "Options", submenu = { type = "replace", items = {
+        { label = "Vertical split",   nav_key = "v", fn = ... },
+        { label = "Horizontal split", nav_key = "h", fn = ... },
+        { label = "Open in tab",      nav_key = "t", fn = ... },
+    }}}
+<
+
+================================================================================
+SIDE PANEL                                                        *nv-menu-panel*
+
+A side panel is a read-only floating window that opens beside the menu to
+show content for the selected item (file previews, docs, etc.).
+
+`auto_preview = false` (default): ~
+  <Enter> / `l` toggles the panel for the selected item. `h` closes it.
+
+`auto_preview = true`: ~
+  The panel opens and updates automatically as the cursor moves through items.
+  `j`/`k` scroll the list while the panel tracks selection.
+
+`panel_content` function signature: ~
+>lua
+    panel_content = function()
+        -- return content, filetype, pos (all optional except content)
+        return table.concat(vim.fn.readfile("path/to/file"), "\n"), "lua"
+    end,
+<
+
+The optional `pos` return value scrolls the panel to a specific location and
+adds a highlight. Useful for showing exact match positions.
+>lua
+    panel_content = function()
+        return content, "lua", {
+            line     = 10,   -- 1-indexed line to scroll to
+            col      = 5,    -- cursor column inside the panel
+            hl_start = 5,    -- start col of the highlight (uses Search group)
+            hl_end   = 12,   -- end col of the highlight
+        }
+    end,
+<
+
+================================================================================
+ACTIONS                                                          *nv-menu-actions*
+
+Actions are per-item context keys shown as footer hints. A key is only active
+when the item that owns it is selected.
+
+>lua
+    {
+        label   = "Build",
+        fn      = function(ctx) vim.cmd("make") end,
+        actions = {
+            { key = "c", label = "clean",   fn = function(ctx, item) vim.cmd("make clean")   end },
+            { key = "r", label = "release", fn = function(ctx, item) vim.cmd("make release") end },
+        },
+    }
+<
+
+Menu-level actions via `item_actions` apply to every item in the menu. ~
+Item-level `actions` take priority on key conflicts.
+>lua
+    require("nv-menu").show({
+        item_actions = {
+            { key = "p", label = "peek", keep_open = true,
+              fn = function(ctx, item, ctrl) ctrl.peek(item) end },
+        },
+        items = { ... },
+    })
+<
+
+An action can open a replace submenu instead of calling `fn`: ~
+>lua
+    { key = "o", label = "options", items = {
+        { label = "Vertical split",   nav_key = "v", fn = ... },
+        { label = "Horizontal split", nav_key = "h", fn = ... },
+    }}
+<
+
+================================================================================
+ASYNC MENUS                                                       *nv-menu-async*
+
+Some operations (LSP queries, file search) take time and would block the UI.
+`show_loading` opens the menu immediately with a placeholder, then
+`update_items` swaps in real results when they arrive.
+
+>lua
+    local nv = require("nv-menu")
+
+    -- menu is visible and interactive immediately
+    nv.show_loading({ name = "References", position = "cursor" })
+
+    vim.lsp.buf_request_all(bufnr, "textDocument/references", params,
+        function(results)
+            local items = build_items(results)
+            if #items == 0 then
+                nv.close()
+                vim.notify("No references found", vim.log.levels.WARN)
+                return
+            end
+            nv.update_items(items)   -- window resizes automatically
+        end
+    )
+<
+
+================================================================================
+BUILT-INS                                                      *nv-menu-builtins*
+
+                                                    *nv-menu-builtins-buffers*
+Buffers ~
+Lists all loaded named buffers. Previews show the file around the last cursor
+position (requires `panel_content`; enabled via `p` peek or `auto_preview`).
+
+>lua
+    require("nv-menu").builtins.buffers()
+
+    -- with options
+    require("nv-menu").builtins.buffers({
+        position     = "centerleft",
+        auto_preview = true,
+        panel_width  = 60,
+    })
+
+    -- custom buffer list — any source (quickfix, LSP locations, etc.)
+    require("nv-menu").builtins.buffers({
+        bufs = {
+            {
+                label         = "src/foo.lua:42",
+                panel_content = function() return content, "lua", pos end,
+                fn            = function() vim.cmd("edit src/foo.lua") end,
+            },
+        },
+    })
+<
+
+Keys: <Enter> switch · `p` peek · `o` → options (`v` vsplit / `h` hsplit /
+`t` tab / `d` delete).
+
+Deleting a buffer with unsaved changes shows a native confirm prompt:
+  Yes    — save then delete
+  No     — force-delete without saving
+  Cancel — return to the menu
+
+Deleting the current buffer switches to the next available buffer (or `enew`).
+
+                                               *nv-menu-builtins-lsp-references*
+LSP References ~
+Opens immediately with a loading placeholder and queries all LSP clients
+asynchronously. Each result shows `path:line`; the preview panel highlights
+the exact match range from the LSP location.
+
+>lua
+    require("nv-menu").builtins.lsp_references()
+
+    require("nv-menu").builtins.lsp_references({
+        position    = "center",
+        panel_width = 80,
+    })
+<
+
+Keys: <Enter> jump · `p` peek · `o` → `v`/`h`/`t` open options.
+
+                                                *nv-menu-builtins-peek-action*
+peek_action ~
+A pre-built `item_actions` entry that adds `p` peek to any menu whose items
+have `panel_content`. Both built-ins include it automatically. To add it to a
+custom menu:
+
+>lua
+    require("nv-menu").show({
+        item_actions = { require("nv-menu.builtins").peek_action },
+        items = { ... },
+    })
+<
+
+Peek opens a large floating window centered on screen. Closes with `q` /
+<Esc>, returning focus to the menu.
+
+================================================================================
+IDENTIFYING MENU BUFFERS                                   *nv-menu-buffer-type*
+
+Every menu buffer has `vim.b[buf].nv_menu = true`. Use this to target menus
+from autocmds or global keymaps.
+
+>lua
+    -- close all menus from anywhere
+    require("nv-menu").close_all()
+
+    -- prevent accidental writes to menu buffers
+    vim.api.nvim_create_autocmd("BufWritePre", {
+        callback = function(e)
+            if vim.b[e.buf].nv_menu then return true end
+        end,
+    })
+<
+
+================================================================================
+KEYBOARD REFERENCE                                                *nv-menu-keys*
+
+  Key               Action ~
+  ──────────────────────────────────────────────────────
+  j / ↓             Move down
+  k / ↑             Move up
+  <C-d>             Half page down
+  <C-u>             Half page up
+  <C-f>             Full page down
+  <C-b>             Full page up
+  gg                Jump to first item
+  G                 Jump to last item
+  <Enter> / l / →   Activate item · open submenu · toggle panel
+  h / ←             Close panel → pop replace history → close nested menu
+  1–9               Jump to item by nav key and activate
+  q / <Esc>         Close menu
+
+================================================================================
+vim:tw=78:ft=help:norl:
