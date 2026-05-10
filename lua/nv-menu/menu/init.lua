@@ -119,9 +119,15 @@ function M:pop_history()
         self.index  = math.max(1, math.min(state.index, #state.items))
         self.scroll = state.scroll
         self:_recalc_meta()
+        self:_sync_title()
         return true
     end
     return false
+end
+
+function M:_sync_title()
+    local prefix = self:has_history() and "◀ " or ""
+    self.window:update_title(prefix .. (self.name or ""))
 end
 
 function M:has_history()
@@ -169,6 +175,7 @@ function M:open_submenu(submenu)
         self.index  = 1
         self.scroll = 0
         self:_recalc_meta()
+        self:_sync_title()
         return { action = "replace" }
     end
     return nil

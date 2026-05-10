@@ -25,6 +25,19 @@ function M:set_title(title)
     self.title = title or ""
 end
 
+function M:update_title(title)
+    self.title = title or ""
+    if not self.win_id or not vim.api.nvim_win_is_valid(self.win_id) then return end
+    local current = vim.api.nvim_win_get_config(self.win_id)
+    if self.title ~= "" then
+        current.title     = " " .. self.title .. " "
+        current.title_pos = "center"
+    else
+        current.title = nil
+    end
+    vim.api.nvim_win_set_config(self.win_id, current)
+end
+
 function M:_build_winhighlight()
     local parts = {}
     if self.config.border_hl then table.insert(parts, "FloatBorder:" .. self.config.border_hl) end
